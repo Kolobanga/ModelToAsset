@@ -49,8 +49,8 @@ class SubnetToAsset(QDialog):
             c.execute('SELECT name, label, id FROM class ORDER BY name ASC;')
             classes = c.fetchall()
         for name, label, num in classes:
-            self.assetClass.addItem(QIcon(os.path.join(r'\\file-share\temp\Asset_icons', name.lower() + '.svg')),
-                                    '{0} ({1})'.format(name, label), num)
+            self.assetClass.addItem(QIcon(os.path.join(r'\\file-share\temp\Asset_icons', name + '.svg')),
+                                    '{0} ({1})'.format(name, label), (num, name))
 
         self.pathEdit = QLineEdit(os.path.dirname(hou.hipFile.path()))
         self.changePathButton = QToolButton()
@@ -94,6 +94,7 @@ class SubnetToAsset(QDialog):
             assetDef.addSection('OnCreated', 'hou.pwd().setUserData("nodeshape", "tilted")')
 
             assetDef.setParmTemplateGroup(parmTemplateGroup)
+            assetDef.setIcon(r'//file-share/temp/Asset_icons/' + self.assetClass.currentData()[1] + '.svg')
             newText = u'''<?xml version="1.0" encoding="UTF-8"?>
 <shelfDocument>
   <!-- This file contains definitions of shelves, toolbars, and tools.
@@ -115,6 +116,55 @@ objecttoolutils.genericTool(kwargs, "$HDA_NAME")]]></script>
   </tool>
 </shelfDocument>'''
             assetDef.addSection('Tools.shelf', newText)
+            # create parm template
+            houParmTemplate = hou.FolderParmTemplate("stdswitcher3_2", "Studio", folder_type=hou.folderType.Tabs,
+                                                       default_value=0, ends_tab_group=False)
+            houParmTemplate2 = hou.LabelParmTemplate("labelparm6", "emptySpace", column_labels=([""]))
+            houParmTemplate2.hideLabel(True)
+            houParmTemplate2.setJoinWithNext(True)
+            houParmTemplate.addParmTemplate(houParmTemplate2)
+            houParmTemplate2 = hou.ButtonParmTemplate("history", "Show History")
+            houParmTemplate2.setJoinWithNext(True)
+            houParmTemplate2.setScriptCallback("kwargs['node'].hdaModule().showHistory(kwargs)")
+            houParmTemplate2.setScriptCallbackLanguage(hou.scriptLanguage.Python)
+            houParmTemplate2.setTags({"script_callback": "kwargs['node'].hdaModule().showHistory(kwargs)",
+                                        "script_callback_language": "python"})
+            houParmTemplate.addParmTemplate(houParmTemplate2)
+            houParmTemplate2 = hou.LabelParmTemplate("labelparm2", "emptySpace", column_labels=([""]))
+            houParmTemplate2.hideLabel(True)
+            houParmTemplate.addParmTemplate(houParmTemplate2)
+            houParmTemplate2 = hou.LabelParmTemplate("labelparm7", "emptySpace", column_labels=([""]))
+            houParmTemplate2.hideLabel(True)
+            houParmTemplate2.setJoinWithNext(True)
+            houParmTemplate.addParmTemplate(houParmTemplate2)
+            houParmTemplate2 = hou.ButtonParmTemplate("inc_version", "Increment Version")
+            houParmTemplate2.setJoinWithNext(True)
+            houParmTemplate2.setScriptCallback("hou.pwd().hdaModule().incrementVersion(kwargs)")
+            houParmTemplate2.setScriptCallbackLanguage(hou.scriptLanguage.Python)
+            houParmTemplate2.setTags({"script_callback": "hou.pwd().hdaModule().incrementVersion(kwargs)",
+                                        "script_callback_language": "python"})
+            houParmTemplate.addParmTemplate(houParmTemplate2)
+            houParmTemplate2 = hou.LabelParmTemplate("labelparm3", "emptySpace", column_labels=([""]))
+            houParmTemplate2.hideLabel(True)
+            houParmTemplate.addParmTemplate(houParmTemplate2)
+            houParmTemplate2 = hou.LabelParmTemplate("labelparm8", "emptySpace", column_labels=([""]))
+            houParmTemplate2.hideLabel(True)
+            houParmTemplate2.setJoinWithNext(True)
+            houParmTemplate.addParmTemplate(houParmTemplate2)
+            houParmTemplate2 = hou.ButtonParmTemplate("review", "Publish")
+            houParmTemplate2.setJoinWithNext(True)
+            houParmTemplate2.setScriptCallback("kwargs['node'].hdaModule().publishAsset(kwargs)")
+            houParmTemplate2.setScriptCallbackLanguage(hou.scriptLanguage.Python)
+            houParmTemplate2.setTags({"script_callback": "kwargs['node'].hdaModule().publishAsset(kwargs)",
+                                        "script_callback_language": "python"})
+            houParmTemplate.addParmTemplate(houParmTemplate2)
+            houParmTemplate2 = hou.LabelParmTemplate("labelparm4", "emptySpace", column_labels=([""]))
+            houParmTemplate2.hideLabel(True)
+            houParmTemplate.addParmTemplate(houParmTemplate2)
+
+            templateGroup = assetDef.parmTemplateGroup()
+            templateGroup.addParmTemplate(houParmTemplate)
+            assetDef.setParmTemplateGroup(templateGroup)
             self.close()
 
 
