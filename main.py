@@ -52,6 +52,10 @@ class SubnetToAsset(QDialog):
             self.assetClass.addItem(QIcon(os.path.join(r'\\file-share\temp\Asset_icons', name + '.svg')),
                                     '{0} ({1})'.format(name, label), (num, name))
 
+        self.pickColorButton = QPushButton()
+        self.pickColorButton.setStyleSheet('background: rgb(230, 230, 230);')
+        self.pickColorButton.clicked.connect(self.pickColor)
+
         self.pathEdit = QLineEdit(os.path.dirname(hou.hipFile.path()))
         self.changePathButton = QToolButton()
         self.changePathButton.clicked.connect(self.selectPath)
@@ -70,6 +74,7 @@ class SubnetToAsset(QDialog):
         self.layout().addWidget(self.assetName)
         self.layout().addWidget(self.assetLabel)
         self.layout().addWidget(self.assetClass)
+        self.layout().addWidget(self.pickColorButton)
         self.layout().addLayout(pathLayout)
         self.layout().addWidget(self.buildButton)
         self.layout().addSpacerItem(spacerItem)
@@ -91,7 +96,12 @@ class SubnetToAsset(QDialog):
             asset = self.subnet.createDigitalAsset(name, filepath, self.assetLabel.text(), 0, 1, True, 'Hahahahahahhah',
                                                    ignore_external_references=True)
             assetDef = asset.type().definition()
-            assetDef.addSection('OnCreated', 'hou.pwd().setUserData("nodeshape", "tilted")')
+            assetDef.addSection('OnCreated', 'kwargs["node"].setUserData("nodeshape", "tilted")'
+                                             '\nkwargs["node"].setColor(hou.Color({0}, {1}, {2}))'.format(
+                self.nodeColor.redF(),
+                self.nodeColor.greenF(),
+                self.nodeColor.blueF()
+            ))
             assetDef.setExtraFileOption('OnCreated/IsPython', True)
             assetDef.setParmTemplateGroup(parmTemplateGroup)
             assetDef.setIcon(r'//file-share/temp/Asset_icons/' + self.assetClass.currentData()[1] + '.svg')
@@ -109,7 +119,7 @@ class SubnetToAsset(QDialog):
     <toolMenuContext name="network">
       <contextOpType>$HDA_TABLE_AND_NAME</contextOpType>
     </toolMenuContext>
-    <toolSubmenu>Models</toolSubmenu>
+    <toolSubmenu>Studio Assets</toolSubmenu>
     <script scriptType="python"><![CDATA[import objecttoolutils
 
 objecttoolutils.genericTool(kwargs, "$HDA_NAME")]]></script>
@@ -118,7 +128,7 @@ objecttoolutils.genericTool(kwargs, "$HDA_NAME")]]></script>
             assetDef.addSection('Tools.shelf', newText)
             # create parm template
             houParmTemplate = hou.FolderParmTemplate("stdswitcher3_2", "Studio", folder_type=hou.folderType.Tabs,
-                                                       default_value=0, ends_tab_group=False)
+                                                     default_value=0, ends_tab_group=False)
             houParmTemplate2 = hou.LabelParmTemplate("labelparm6", "emptySpace", column_labels=([""]))
             houParmTemplate2.hideLabel(True)
             houParmTemplate2.setJoinWithNext(True)
@@ -128,7 +138,7 @@ objecttoolutils.genericTool(kwargs, "$HDA_NAME")]]></script>
             houParmTemplate2.setScriptCallback("kwargs['node'].hdaModule().showHistory(kwargs)")
             houParmTemplate2.setScriptCallbackLanguage(hou.scriptLanguage.Python)
             houParmTemplate2.setTags({"script_callback": "kwargs['node'].hdaModule().showHistory(kwargs)",
-                                        "script_callback_language": "python"})
+                                      "script_callback_language": "python"})
             houParmTemplate.addParmTemplate(houParmTemplate2)
             houParmTemplate2 = hou.LabelParmTemplate("labelparm2", "emptySpace", column_labels=([""]))
             houParmTemplate2.hideLabel(True)
@@ -142,7 +152,7 @@ objecttoolutils.genericTool(kwargs, "$HDA_NAME")]]></script>
             houParmTemplate2.setScriptCallback("hou.pwd().hdaModule().incrementVersion(kwargs)")
             houParmTemplate2.setScriptCallbackLanguage(hou.scriptLanguage.Python)
             houParmTemplate2.setTags({"script_callback": "hou.pwd().hdaModule().incrementVersion(kwargs)",
-                                        "script_callback_language": "python"})
+                                      "script_callback_language": "python"})
             houParmTemplate.addParmTemplate(houParmTemplate2)
             houParmTemplate2 = hou.LabelParmTemplate("labelparm3", "emptySpace", column_labels=([""]))
             houParmTemplate2.hideLabel(True)
@@ -156,7 +166,7 @@ objecttoolutils.genericTool(kwargs, "$HDA_NAME")]]></script>
             houParmTemplate2.setScriptCallback("kwargs['node'].hdaModule().publishAsset(kwargs)")
             houParmTemplate2.setScriptCallbackLanguage(hou.scriptLanguage.Python)
             houParmTemplate2.setTags({"script_callback": "kwargs['node'].hdaModule().publishAsset(kwargs)",
-                                        "script_callback_language": "python"})
+                                      "script_callback_language": "python"})
             houParmTemplate.addParmTemplate(houParmTemplate2)
             houParmTemplate2 = hou.LabelParmTemplate("labelparm4", "emptySpace", column_labels=([""]))
             houParmTemplate2.hideLabel(True)
@@ -165,7 +175,16 @@ objecttoolutils.genericTool(kwargs, "$HDA_NAME")]]></script>
             templateGroup = assetDef.parmTemplateGroup()
             templateGroup.addParmTemplate(houParmTemplate)
             assetDef.setParmTemplateGroup(templateGroup)
+            asset.setColor(hou.Color(self.nodeColor.redF(), self.nodeColor.greenF(), self.nodeColor.blueF()))
+            asset.setUserData("nodeshape", "tilted")
+            asset.matchCurrentDefinition()
             self.close()
+
+    def pickColor(self):
+        self.nodeColor = QColorDialog.getColor(QColor(230, 230, 230), self, 'Node Color')
+        self.pickColorButton.setStyleSheet(
+            'background: rgb({r}, {g}, {b});'.format(r=self.nodeColor.red(), g=self.nodeColor.green(),
+                                                     b=self.nodeColor.blue()))
 
 
 selectedNodes = hou.selectedNodes()
