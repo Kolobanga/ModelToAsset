@@ -92,7 +92,7 @@ class SubnetToAsset(QDialog):
                                                    ignore_external_references=True)
             assetDef = asset.type().definition()
             assetDef.addSection('OnCreated', 'hou.pwd().setUserData("nodeshape", "tilted")')
-
+            assetDef.setExtraFileOption('OnCreated/IsPython', True)
             assetDef.setParmTemplateGroup(parmTemplateGroup)
             assetDef.setIcon(r'//file-share/temp/Asset_icons/' + self.assetClass.currentData()[1] + '.svg')
             newText = u'''<?xml version="1.0" encoding="UTF-8"?>
