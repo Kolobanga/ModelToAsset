@@ -20,6 +20,27 @@ except:
 
 DBFILE = r'\\File-share\temp\review.db'
 
+scriptTemplate = u'''<?xml version="1.0" encoding="UTF-8"?>
+<shelfDocument>
+  <!-- This file contains definitions of shelves, toolbars, and tools.
+ It should not be hand-edited when it is being used by the application.
+ Note, that two definitions of the same element are not allowed in
+ a single file. -->
+
+  <tool name="$HDA_DEFAULT_TOOL" label="$HDA_LABEL" icon="$HDA_ICON">
+    <toolMenuContext name="viewer">
+      <contextNetType>OBJ</contextNetType>
+    </toolMenuContext>
+    <toolMenuContext name="network">
+      <contextOpType>$HDA_TABLE_AND_NAME</contextOpType>
+    </toolMenuContext>
+    <toolSubmenu>{0}</toolSubmenu>
+    <script scriptType="python"><![CDATA[import objecttoolutils
+
+objecttoolutils.genericTool(kwargs, "$HDA_NAME")]]></script>
+  </tool>
+</shelfDocument>'''
+
 
 class SubnetToAsset(QDialog):
     def __init__(self, subnet, parent=None):
@@ -42,6 +63,9 @@ class SubnetToAsset(QDialog):
 
         self.assetLabel = QLineEdit()
         self.assetLabel.setPlaceholderText('Asset label')
+
+        self.assetCatalogLabel = QLineEdit()
+        self.assetCatalogLabel.setPlaceholderText('Label in Catalog')
 
         self.assetClass = QComboBox()
         with sqlite3.connect(DBFILE) as db:
@@ -73,11 +97,14 @@ class SubnetToAsset(QDialog):
         self.layout().addWidget(self.assetProject)
         self.layout().addWidget(self.assetName)
         self.layout().addWidget(self.assetLabel)
+        self.layout().addWidget(self.assetCatalogLabel)
         self.layout().addWidget(self.assetClass)
         self.layout().addWidget(self.pickColorButton)
         self.layout().addLayout(pathLayout)
         self.layout().addWidget(self.buildButton)
         self.layout().addSpacerItem(spacerItem)
+
+        self.nodeColor = QColor(230, 230, 230)
 
     def selectPath(self):
         self.pathEdit.setText(
@@ -93,38 +120,18 @@ class SubnetToAsset(QDialog):
         if reply == QMessageBox.Ok:
             parmTemplateGroup = self.subnet.parmTemplateGroup()
 
-            asset = self.subnet.createDigitalAsset(name, filepath, self.assetLabel.text(), 0, 1, True, 'Hahahahahahhah',
+            asset = self.subnet.createDigitalAsset(name, filepath, self.assetLabel.text(), 0, 1, True, '',
                                                    ignore_external_references=True)
             assetDef = asset.type().definition()
             assetDef.addSection('OnCreated', 'kwargs["node"].setUserData("nodeshape", "tilted")'
                                              '\nkwargs["node"].setColor(hou.Color({0}, {1}, {2}))'.format(
-                self.nodeColor.redF(),
-                self.nodeColor.greenF(),
-                self.nodeColor.blueF()
-            ))
+                self.nodeColor.redF(), self.nodeColor.greenF(), self.nodeColor.blueF()))
             assetDef.setExtraFileOption('OnCreated/IsPython', True)
+            assetDef.addSection('PythonModule', 'from Studio import *')
+            assetDef.setExtraFileOption('PythonModule/IsPython', True)
             assetDef.setParmTemplateGroup(parmTemplateGroup)
             assetDef.setIcon(r'//file-share/temp/Asset_icons/' + self.assetClass.currentData()[1] + '.svg')
-            newText = u'''<?xml version="1.0" encoding="UTF-8"?>
-<shelfDocument>
-  <!-- This file contains definitions of shelves, toolbars, and tools.
- It should not be hand-edited when it is being used by the application.
- Note, that two definitions of the same element are not allowed in
- a single file. -->
-
-  <tool name="$HDA_DEFAULT_TOOL" label="$HDA_LABEL" icon="$HDA_ICON">
-    <toolMenuContext name="viewer">
-      <contextNetType>OBJ</contextNetType>
-    </toolMenuContext>
-    <toolMenuContext name="network">
-      <contextOpType>$HDA_TABLE_AND_NAME</contextOpType>
-    </toolMenuContext>
-    <toolSubmenu>Studio Assets</toolSubmenu>
-    <script scriptType="python"><![CDATA[import objecttoolutils
-
-objecttoolutils.genericTool(kwargs, "$HDA_NAME")]]></script>
-  </tool>
-</shelfDocument>'''
+            newText = scriptTemplate.format('Studio Assets')
             assetDef.addSection('Tools.shelf', newText)
             # create parm template
             houParmTemplate = hou.FolderParmTemplate("stdswitcher3_2", "Studio", folder_type=hou.folderType.Tabs,
@@ -183,7 +190,8 @@ objecttoolutils.genericTool(kwargs, "$HDA_NAME")]]></script>
     def pickColor(self):
         self.nodeColor = QColorDialog.getColor(QColor(230, 230, 230), self, 'Node Color')
         self.pickColorButton.setStyleSheet(
-            'background: rgb({r}, {g}, {b});'.format(r=self.nodeColor.red(), g=self.nodeColor.green(),
+            'background: rgb({r}, {g}, {b});'.format(r=self.nodeColor.red(),
+                                                     g=self.nodeColor.green(),
                                                      b=self.nodeColor.blue()))
 
 
